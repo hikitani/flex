@@ -3,9 +3,22 @@ package flex
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
+type embedTest struct {
+	f1 string
+	f2 string
+	f3 int
+}
+
+type embedTest2 struct{}
+
 type fooTest struct {
+	embedTest
+	*embedTest2
+
 	f1  int
 	f2  *int
 	f3  string
@@ -26,20 +39,28 @@ type fooTest struct {
 	f12 *struct{ f13 int }
 	f13 *fooTest
 	f14 *fooTest
+	_   int
+	_   string
 }
 
-func TestXxx(t *testing.T) {
+func TestStructToMap(t *testing.T) {
 	foo := fooTest{
-		f1:  1,
-		f2:  ptrOf(2),
-		f3:  "hello",
-		f4:  ptrOf("world"),
-		f5:  [3]*int{ptrOf(1), ptrOf(2)},
-		f6:  []byte{1, 2, 3, 4},
-		f7:  func() {},
-		f8:  "string",
-		f9:  make(chan int),
-		f10: map[string]any{"foo": "bar"},
+		embedTest: embedTest{
+			f1: "f1",
+			f2: "f2",
+			f3: 3,
+		},
+		embedTest2: nil,
+		f1:         1,
+		f2:         ptrOf(2),
+		f3:         "hello",
+		f4:         ptrOf("world"),
+		f5:         [3]*int{ptrOf(1), ptrOf(2)},
+		f6:         []byte{1, 2, 3, 4},
+		f7:         func() {},
+		f8:         "string",
+		f9:         make(chan int),
+		f10:        map[string]any{"foo": "bar"},
 		f11: struct {
 			f12 int
 			f13 *int
@@ -63,16 +84,22 @@ func TestXxx(t *testing.T) {
 	}
 
 	assertEqualMaps(t, map[string]any{
-		"f1":  foo.f1,
-		"f2":  foo.f2,
-		"f3":  foo.f3,
-		"f4":  foo.f4,
-		"f5":  foo.f5,
-		"f6":  foo.f6,
-		"f7":  foo.f7,
-		"f8":  foo.f8,
-		"f9":  foo.f9,
-		"f10": foo.f10,
+		"embedTest": map[string]any{
+			"f1": "f1",
+			"f2": "f2",
+			"f3": 3,
+		},
+		"embedTest2": (*embedTest2)(nil),
+		"f1":         foo.f1,
+		"f2":         foo.f2,
+		"f3":         foo.f3,
+		"f4":         foo.f4,
+		"f5":         foo.f5,
+		"f6":         foo.f6,
+		"f7":         foo.f7,
+		"f8":         foo.f8,
+		"f9":         foo.f9,
+		"f10":        foo.f10,
 		"f11": map[string]any{
 			"f12": foo.f11.f12,
 			"f13": foo.f11.f13,
@@ -86,6 +113,173 @@ func TestXxx(t *testing.T) {
 		"f13": &foo,
 		"f14": &foo,
 	}, m)
+}
+
+func TestFieldValue(t *testing.T) {
+	type f3 struct {
+		f4 string
+	}
+
+	type f2 struct {
+		f3 f3
+	}
+
+	type f1 struct {
+		f2 f2
+	}
+
+	type composite struct {
+		f1 f1
+	}
+
+	testCases := []struct {
+		Value         composite
+		Key           string
+		ExpectedValue any
+		ExpectedOk    bool
+	}{
+
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "",
+			ExpectedValue: nil,
+			ExpectedOk:    false,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "f1.",
+			ExpectedValue: nil,
+			ExpectedOk:    false,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           ".f1",
+			ExpectedValue: nil,
+			ExpectedOk:    false,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           ".",
+			ExpectedValue: nil,
+			ExpectedOk:    false,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "f4",
+			ExpectedValue: nil,
+			ExpectedOk:    false,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "f1",
+			ExpectedValue: f1{f2: f2{f3: f3{f4: "hello"}}},
+			ExpectedOk:    true,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "f1.f2",
+			ExpectedValue: f2{f3: f3{f4: "hello"}},
+			ExpectedOk:    true,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "f1.f2.f3",
+			ExpectedValue: f3{f4: "hello"},
+			ExpectedOk:    true,
+		},
+		{
+			Value:         composite{f1: f1{f2: f2{f3: f3{f4: "hello"}}}},
+			Key:           "f1.f2.f3.f4",
+			ExpectedValue: "hello",
+			ExpectedOk:    true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		val, ok := FieldValue(testCase.Value, testCase.Key)
+		assert.Equal(t, testCase.ExpectedValue, val)
+		assert.Equal(t, testCase.ExpectedOk, ok)
+	}
+}
+
+func TestValuesOf(t *testing.T) {
+	t.Run("flat", valuesOfTest(
+		struct {
+			f1 string
+			f2 string
+			f3 int
+		}{f1: "hello", f2: "world", f3: 111},
+		[]string{"hello", "world"}, nil,
+	))
+
+	t.Run("repeated", valuesOfTest(
+		struct {
+			f1 string
+			f2 string
+			f3 string
+		}{f1: "hello", f2: "hello", f3: "world"},
+		[]string{"hello", "hello", "world"}, nil,
+	))
+
+	t.Run("nested", valuesOfTest(
+		struct {
+			n1 struct {
+				f1 string
+			}
+			n2 struct {
+				f1 string
+			}
+		}{n1: struct{ f1 string }{f1: "hello"}, n2: struct{ f1 string }{f1: "world"}},
+		[]string{"hello", "world"}, nil,
+	))
+
+	type foo struct {
+		f1 string
+	}
+
+	t.Run("any", valuesOfTest(
+		struct {
+			f1 any
+			f2 any
+			f3 any
+			f4 any
+		}{f1: 1, f2: "hello", f3: 2.2, f4: foo{f1: "world"}}, []any{1, "hello", 2.2, foo{f1: "world"}}, nil,
+	))
+
+	t.Run("nostruct", valuesOfTest[any]("nostruct", nil, ErrValueIsNotStruct))
+}
+
+func valuesOfTest[Target, From any](val From, expected []Target, expectedErr error) func(t *testing.T) {
+	intersection := func(v1, v2 []Target) int {
+		m := map[any]int{}
+		for _, v := range v1 {
+			c := m[v]
+			m[v] = c + 1
+		}
+
+		res := 0
+		for _, v := range v2 {
+			c := m[v]
+			if c == 0 {
+				continue
+			}
+
+			res++
+			m[v] = c - 1
+		}
+
+		return res
+	}
+
+	return func(t *testing.T) {
+		values, err := ValuesOf[Target](val)
+		if expectedErr == nil {
+			assert.NoError(t, err)
+		} else {
+			assert.ErrorIs(t, err, expectedErr)
+		}
+		assert.Equal(t, len(expected), intersection(values, expected))
+	}
 }
 
 func assertEqualMaps(t *testing.T, expected, actual map[string]any) {
