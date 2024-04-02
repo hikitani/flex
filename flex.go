@@ -64,7 +64,7 @@ func getFieldValue(v any, key string, visitedTypes map[string]struct{}) (any, bo
 	beginPtr := refVal.Addr().UnsafePointer()
 	typId := typVal.PkgPath() + typVal.Name()
 
-	if isAnonStruct := typId == ""; !isAnonStruct {
+	if isAnonStruct := typVal.Name() == ""; !isAnonStruct {
 		visitedTypes[typId] = struct{}{}
 	}
 
@@ -105,10 +105,10 @@ func getFieldValue(v any, key string, visitedTypes map[string]struct{}) (any, bo
 			elemTyp := fieldInfo.Type.Elem()
 
 			if elemTyp.Kind() == reflect.Struct {
-				typId := fieldInfo.PkgPath + fieldInfo.Type.Name()
+				typName := elemTyp.Name()
+				typId := fieldInfo.PkgPath + typName
 
-				if _, ok := visitedTypes[typId]; !ok {
-					visitedTypes[typId] = struct{}{}
+				if _, ok := visitedTypes[typId]; !ok || typName == "" {
 					fieldInfo.Type = elemTyp
 				}
 			}
@@ -136,7 +136,7 @@ func structToMap(v any, m map[string]any, visitedTypes map[string]struct{}) erro
 	beginPtr := refVal.Addr().UnsafePointer()
 	typId := typVal.PkgPath() + typVal.Name()
 
-	if isAnonStruct := typId == ""; !isAnonStruct {
+	if isAnonStruct := typVal.Name() == ""; !isAnonStruct {
 		visitedTypes[typId] = struct{}{}
 	}
 
@@ -156,10 +156,10 @@ func structToMap(v any, m map[string]any, visitedTypes map[string]struct{}) erro
 			elemTyp := fieldInfo.Type.Elem()
 
 			if elemTyp.Kind() == reflect.Struct {
-				typId := fieldInfo.PkgPath + fieldInfo.Type.Name()
+				typName := elemTyp.Name()
+				typId := fieldInfo.PkgPath + typName
 
-				if _, ok := visitedTypes[typId]; !ok {
-					visitedTypes[typId] = struct{}{}
+				if _, ok := visitedTypes[typId]; !ok || typName == "" {
 					fieldInfo.Type = elemTyp
 				}
 			}
