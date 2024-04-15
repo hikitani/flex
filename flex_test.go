@@ -1,6 +1,7 @@
 package flex
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -381,4 +382,16 @@ func diffKeys(rootKey string, m1, m2 map[string]any) (map[string]diffValue, []st
 
 func ptrOf[T any](v T) *T {
 	return &v
+}
+
+func TestXxx(t *testing.T) {
+	type Foo struct {
+		f1 string
+		f2 int
+		f3 string
+	}
+
+	vals, err := ValuesOf[string](Foo{f1: "hello", f2: 111, f3: "world"})
+	fmt.Println(err)
+	fmt.Println(vals)
 }

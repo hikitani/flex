@@ -8,8 +8,15 @@ import (
 	"unsafe"
 )
 
+// ErrValueIsNotStruct is an error indicating that the value is not a struct.
 var ErrValueIsNotStruct = errors.New("value is not struct")
 
+// StructToMap converts specified value into map.
+// The function traverses the structure by all fields recursively, including private fields.
+// If the value type is not a structure, the ErrValueIsNotStruct error will be returned.
+// Pointers to the structure are also traversed.
+// If a cycle is detected during traversal, no further deep traversal is performed,
+// but instead the value itself is taken.
 func StructToMap[T any](v T) (map[string]any, error) {
 	m := map[string]any{}
 	if err := structToMap(&v, m, map[string]struct{}{}); err != nil {
@@ -19,6 +26,19 @@ func StructToMap[T any](v T) (map[string]any, error) {
 	return m, nil
 }
 
+// ValuesOf extracts from value list of specified Target.
+//
+// Example:
+//
+//	type Foo struct {
+//		f1 string
+//		f2 int
+//		f3 string
+//	}
+//
+//	vals, err := ValuesOf[string](Foo{f1: "hello", f2: 111, f3: "world"})
+//	fmt.Println(err)  // nil
+//	fmt.Println(vals) // [hello world]
 func ValuesOf[Target, From any](v From) ([]Target, error) {
 	m, err := StructToMap(v)
 	if err != nil {
@@ -42,6 +62,21 @@ func findValuesOfType[T any](m map[string]any) []T {
 	return values
 }
 
+// FieldValue searches for a value along a specified path separated by dots.
+//
+// Example:
+//
+//	type Foo struct {
+//		buz string
+//	}
+//
+//	type Bar struct {
+//		foo Foo
+//	}
+//
+//	v, ok := flex.FieldValue(Bar{foo: Foo{buz: "hello"}}, "foo.buz")
+//	fmt.Println(ok) // true
+//	fmt.Println(v)  // "hello"
 func FieldValue[T any](v T, key string) (any, bool) {
 	return getFieldValue(&v, key, map[string]struct{}{})
 }
