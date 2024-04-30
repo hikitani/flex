@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        go: [1.18, 1.19, 1.20, 1.21, 1.22]
+        go: [1.21, 1.22]
     steps:
     - uses: actions/checkout@v2
 
@@ -26,5 +26,12 @@ jobs:
     - name: Build
       run: go install
 
+    - name: Test
+      run: |
+        go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
+        go tool cover -func coverage.out -o coverage.out
+
     - name: Report Coveralls
       uses: coverallsapp/github-action@v2
+      with:
+        file: coverage.out
