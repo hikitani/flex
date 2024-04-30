@@ -1,0 +1,30 @@
+name: Go coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        go: [1.18, 1.19, 1.20, 1.21, 1.22]
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Build
+      run: go install
+
+    - name: Report Coveralls
+      uses: coverallsapp/github-action@v2
