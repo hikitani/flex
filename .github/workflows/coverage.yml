@@ -34,4 +34,4 @@ jobs:
     - name: Report Coveralls
       uses: coverallsapp/github-action@v2
       with:
-        file: coverage.out
+        file: "*.out"
