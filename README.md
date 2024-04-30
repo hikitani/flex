@@ -5,6 +5,9 @@
 <p align="center">
     <img src="https://img.shields.io/github/license/hikitani/flex" alt="License">
     <img alt="Static Badge" src="https://img.shields.io/badge/lang-golang-blue">
+    <a href='https://coveralls.io/github/hikitani/flex?branch=main'><img src='https://coveralls.io/repos/github/hikitani/flex/badge.svg?branch=main' alt='Coverage Status' /></a>
+    <a href="https://goreportcard.com/report/github.com/hikitani/flex"><img src="https://goreportcard.com/badge/github.com/hikitani/flex" alt="Go Reference"></a>
+    <a href="https://pkg.go.dev/github.com/hikitani/flex"><img src="https://pkg.go.dev/badge/github.com/hikitani/flex.svg" alt="Go Reference"></a>
 </p>
 
 </p>
